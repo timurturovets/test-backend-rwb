@@ -1,0 +1,16 @@
+# Binary
+/bin/
+*.exe
+
+# Go
+vendor/
+
+# IDE
+.vscode/
+
+# Env
+.env
+*.env
+
+# OS
+.DS_Store
