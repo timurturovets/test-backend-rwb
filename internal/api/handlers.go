@@ -54,3 +54,21 @@ func (h *Handler) AddStopword(w http.ResponseWriter, r *http.Request) {
 	h.engine.AddToStoplist(body.Word)
 	w.WriteHeader(http.StatusNoContent)
 }
+
+func (h *Handler) RemoveStopword(w http.ResponseWriter, r *http.Request) {
+	word := r.PathValue("word")
+	if word == "" {
+		writeJSON(w, http.StatusBadRequest, map[string]string{
+			"error": "word is required",
+		})
+		return
+	}
+
+	h.engine.RemoveFromStoplist(word)
+	w.WriteHeader(http.StatusNoContent)
+}
+func writeJSON(w http.ResponseWriter, status int, v any) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	json.NewEncoder(w).Encode(v)
+}
