@@ -77,4 +77,52 @@ func (e *Engine) IsBlocked(query string) bool {
 
 func (e *Engine) Start(ctx context.Context) {
 	ticker := time.NewTicker(time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			e.rotate()
+			e.recalculate()
+		}
+	}
+}
+
+func (e *Engine) rotate() {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
+	e.current = (e.current + 1) % bucketCount
+	e.buckets[e.current] = newBucket()
+}
+
+func (e *Engine) recalculate() {
+	e.mu.RLock()
+
+	merged := make(map[string]int64)
+	for _, b := range e.buckets {
+		for q, c := range b.counts {
+			merged[q] += c
+		}
+	}
+
+	e.mu.RUnlock()
+
+	e.slMu.RLock()
+	for word := range e.stoplist {
+		delete(merged, word)
+	}
+	e.slMu.RUnlock()
+
+	scores := topN(merged, 100)
+	top := make([]Entry, len(scores))
+	for i, s := range scores {
+		top[i] = Entry{Query: s.query, Count: s.count}
+	}
+
+	e.cachedMu.Lock()
+	e.cachedTop = top
+	e.cachedMu.Unlock()
 }
