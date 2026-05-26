@@ -1,0 +1,36 @@
+services:
+  nats:
+    image: nats:latest
+    command: ["-js", "-m", "8222"]
+    ports:
+      - "4222:4222"
+      - "8222:8222"
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8222/healthz"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  app:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      - NATS_URL=nats://nats:4222
+      - NATS_SUBJECT=search.events
+      - NATS_STREAM=SEARCH
+      - HTTP_ADDR=:8080
+      - WINDOW_SECS=300
+      - TOP_CACHE_TTL=1
+    depends_on:
+      nats:
+        condition: service_healthy
+
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    depends_on:
+      - app
