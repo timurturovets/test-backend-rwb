@@ -17,3 +17,7 @@ up:
 
 down:
 	docker compose down -v
+
+produce:
+	@echo "Sending test events to NATS..."
+	go run ./cmd/producer/...
