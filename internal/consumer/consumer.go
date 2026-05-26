@@ -8,6 +8,7 @@ import (
 
 	"github.com/nats-io/nats.go"
 	"github.com/nats-io/nats.go/jetstream"
+	"github.com/timurturovets/test-backend-rwb/internal/metrics"
 )
 
 type Handler func(event SearchEvent)
@@ -66,13 +67,17 @@ func (c *Consumer) Start(ctx context.Context) error {
 				"error", err,
 				"data", string(msg.Data()),
 			)
+
 			msg.Nak()
+			metrics.EventsDropped.WithLabelValues("invalid_json").Inc()
 			return
 		}
 
 		if event.Query == "" || event.Timestamp == 0 {
 			c.logger.Warn("invalid event: missing required fields")
+
 			msg.Nak()
+			metrics.EventsDropped.WithLabelValues("missing_fields").Inc()
 			return
 		}
 
@@ -80,10 +85,12 @@ func (c *Consumer) Start(ctx context.Context) error {
 		if age > 600 {
 			c.logger.Warn("dropping stale event", "age_secs", age)
 			msg.Term()
+			metrics.EventsDropped.WithLabelValues("stale_event").Inc()
 			return
 		}
 
 		c.handler(event)
+		metrics.EventsProcessed.Inc()
 		msg.Ack()
 	})
 
