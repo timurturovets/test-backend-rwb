@@ -4,8 +4,10 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/timurturovets/test-backend-rwb/internal/engine"
+	"github.com/timurturovets/test-backend-rwb/internal/metrics"
 )
 
 type Handler struct {
@@ -24,6 +26,12 @@ type topResponse struct {
 }
 
 func (h *Handler) GetTop(w http.ResponseWriter, r *http.Request) {
+	start := time.Now()
+	defer func() {
+		metrics.RequestDuration.Observe(time.Since(start).Seconds())
+	}()
+	metrics.TopRequests.Inc()
+
 	n, err := strconv.Atoi(r.URL.Query().Get("n"))
 	if err != nil || n <= 0 {
 		n = 10
