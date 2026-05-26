@@ -1,6 +1,10 @@
 package api
 
-import "net/http"
+import (
+	"net/http"
+
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+)
 
 func NewRouter(h *Handler) http.Handler {
 	mux := http.NewServeMux()
@@ -8,6 +12,8 @@ func NewRouter(h *Handler) http.Handler {
 	mux.HandleFunc("GET /api/v1/top", h.GetTop)
 	mux.HandleFunc("POST /api/v1/stoplist", h.AddStopword)
 	mux.HandleFunc("DELETE /api/v1/stoplist/{word}", h.RemoveStopword)
+
+	mux.Handle("GET /metrics", promhttp.Handler())
 
 	return mux
 }
