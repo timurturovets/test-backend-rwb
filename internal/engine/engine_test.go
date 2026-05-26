@@ -187,3 +187,52 @@ func TestEngine_ConcurrentAccess(t *testing.T) {
 
 	<-done
 }
+
+func BenchmarkEngine_Add(b *testing.B) {
+	e := NewEngine()
+
+	b.ResetTimer()
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			e.Add("кроссовки")
+		}
+	})
+}
+
+func BenchmarkEngine_Top(b *testing.B) {
+	e := NewEngine()
+
+	for i := 0; i < 10000; i++ {
+		e.Add("асикс")
+		e.Add("нью бэленс")
+		e.Add("найк")
+	}
+
+	e.recalculate()
+	b.ResetTimer()
+
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			e.Top(10)
+		}
+	})
+}
+
+func BenchmarkEngine_AddAndTop(b *testing.B) {
+	e := NewEngine()
+
+	go func() {
+		for {
+			e.recalculate()
+			time.Sleep(time.Second)
+		}
+	}()
+
+	b.ResetTimer()
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			e.Add("кроссовки")
+			e.Top(10)
+		}
+	})
+}
